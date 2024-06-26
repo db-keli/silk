@@ -1,5 +1,6 @@
 from pytube import Playlist 
 from pytube import YouTube
+import io
 
 def download_playlist(url, resolution):
     """
@@ -40,8 +41,8 @@ stream1=yt.streams[0]
 
 # creating buffer
 buffer = io.BytesIO()
-buffer.seek(0)
 stream1.stream_to_buffer(buffer)
+buffer.seek(0)
 
 # Print buffer details
 print(f"Buffer size: {len(buffer.getvalue())} bytes")
