@@ -19,6 +19,22 @@ app = FastAPI()
 
 @app.post("/download-video")
 async def single_video_download(video: Video):
+    """
+    Downloads a video from the given URL with the specified resolution and returns a streaming response.
+
+    Parameters:
+        video (Video): The video object containing the URL and resolution of the video to be downloaded.
+
+    Returns:
+        StreamingResponse: The streaming response containing the downloaded video.
+
+    Raises:
+        None.
+
+    Example Usage:
+        video = Video(url="https://www.youtube.com/watch?v=dQw4w9WgXcQ", resolution="720p")
+        response = await single_video_download(video)
+    """
     url = video.url
     resolution = video.resolution
 
