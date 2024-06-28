@@ -3,12 +3,13 @@ import { useState } from "react";
 export default function Search() {
   const [state, setState] = useState(false);
   return (
-    <div className="flex flex-row">
+    <div className="flex flex-row mt-5">
+      <div className="basis-1/12" />
       <input
         name="Search"
         type="text"
         maxLength={90}
-        className="basis-11/12 border-gray-300"
+        className="basis-9/12 border-white"
         placeholder="  Paste Link Here"
       />
       <div
@@ -16,14 +17,21 @@ export default function Search() {
         onMouseLeave={() => setState(false)}
         className={
           state === true
-            ? "ml-2 border basis-1/12 bg-red-300 rounded-md"
-            : "ml-2 border basis-1/12 rounded-md"
+            ? "ml-2 basis-1/12 rounded-md"
+            : "ml-2 basis-1/12 rounded-md"
         }
       >
-        <text className={state === true ? "font-mono" : "font-sans"}>
+        <button
+          className={
+            state === true
+              ? "font-open text-white underline"
+              : "font-open text-white"
+          }
+        >
           Submit
-        </text>
+        </button>
       </div>
+      <div className="basis-1/12" />
     </div>
   );
 }
