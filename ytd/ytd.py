@@ -39,7 +39,7 @@ def download_video(url, resolution):
     Returns:
         None
     """
-    print("hello")
+    
     yt = YouTube(url)
     print("me")
     stream = yt.streams.filter(res=resolution).first()
@@ -50,7 +50,7 @@ def download_video(url, resolution):
         print("there")
         stream.stream_to_buffer(Buffer)
         Buffer.seek(0)
-    print((yt.title, Buffer))
+    return (yt.title, Buffer)
 
 # # testing buffer
 # yt = YouTube("https://youtu.be/aID6FoFhZqk?si=HohX-AtO1cEh3rHz")
@@ -63,5 +63,5 @@ def download_video(url, resolution):
 # # Print buffer details
 # print(f"Buffer size: {len(buffer.getvalue())} bytes")
 
-if __name__ == "main":
-    download_video("https://youtu.be/aID6FoFhZqk?si=HohX-AtO1cEh3rHz","360p")
+
+download_video("https://youtu.be/aID6FoFhZqk?si=HohX-AtO1cEh3rHz","360p")
