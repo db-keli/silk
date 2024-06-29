@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import StreamingResponse
-from schemas import Video
+from schemas import Playlist, Video
 import os
 import sys
 import mimetypes
@@ -39,17 +39,54 @@ async def single_video_download(video: Video):
     resolution = video.resolution
 
     youtubeVideo = ytd.download_video(url, resolution)
-    title = youtubeVideo.title
-
+    title = youtubeVideo[1][0]
+    video_stream = youtubeVideo[0]
     media_type, _ = mimetypes.guess_type(title)
 
     return StreamingResponse(
-        ytd.download(youtubeVideo, timeout=1000, max_retries=6),
+        ytd.download(video_stream, timeout=1000, max_retries=6),
         media_type=media_type or "application/octet-stream",
         headers={"Content-Disposition": f'attachment; filename="{title}.mp4"'},
     )
 
 
-@app.get("/stream_video/")
-async def stream_video(url: str, resolution: str = Query(...)):
-    pass
+@app.get("/download-video/")
+async def get_video_data(url: str, resolution: str):
+    youtubeVideo = ytd.download_video(url, resolution)
+    data = youtubeVideo[1]
+    return {"data": data}
+
+
+@app.post("/download-playlist")
+async def stream_video(playlist: Playlist):
+    """
+    Downloads a playlist of videos from the given URL with the specified video resolution and returns a streaming response for each video.
+
+    Parameters:
+        playlist (Playlist): The playlist object containing the URL and video resolution of the playlist to be downloaded.
+
+    Yields:
+        StreamingResponse: A streaming response containing the downloaded video for each video in the playlist.
+
+    Raises:
+        None.
+
+    Example Usage:
+        playlist = Playlist(url="https://www.youtube.com/playlist?list=PL3nQyYezyvZQ8N-h7Qkz46o5q5jYl0mOj", resolution="720p")
+        for response in stream_video(playlist):
+            # handle each streaming response
+    """
+    url = playlist.url
+    video_resolution = playlist.resolution
+
+    youtube_videos = ytd.download_playlist(url, video_resolution)
+
+    for video, i in (youtube_videos, range(0, len(youtube_videos))):
+        title = video[i].title
+        media_type, _ = mimetypes.guess_type(title)
+
+        yield StreamingResponse(
+            ytd.download(video[i], timeout=1000, max_retries=6),
+            media_type=media_type or "application/octet-stream",
+            headers={"Content-Disposition": f'attachment; filename="{title}.mp4"'},
+        )
