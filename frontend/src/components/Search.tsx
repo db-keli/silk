@@ -11,11 +11,12 @@ export default function Search() {
 
   const getData = (event: ChangeEvent) => {
     const link = (event.target as HTMLInputElement).value;
-    axios
-      .get(`http://127.0.0.1:8000/download-video/?url=${link}&resolution=480p`)
-      .then((res) => {
-        setData(res.data);
-      });
+    // axios
+    //   .get(`http://127.0.0.1:8000/download-video/?url=${link}&resolution=480p`)
+    //   .then((res) => {
+    //     setData(res.data);
+    //     console.log(res);
+    console.log(link);
   };
   return (
     <>
