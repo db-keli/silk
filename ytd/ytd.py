@@ -4,6 +4,7 @@ from pytube import YouTube, Stream
 import io
 from typing import List, Optional, Tuple
 from pytube import request
+from fastapi import HTTPException
 
 
 Buffer = io.BytesIO()
@@ -12,19 +13,21 @@ Buffer = io.BytesIO()
 from typing import List
 
 
-def download_playlist(url, resolution) -> List[Tuple[YouTube, io.BytesIO]]:
+def download_playlist(url, resolution) -> List[Tuple[str, io.BytesIO]]:
     playlist = Playlist(url)
-    downloaded_buffers = []
+    downloaded_streams = []
 
+    if not playlist:
+        raise HTTPException(status_code=404, detail="Playlist not found")
     for video in playlist.videos:
         stream = video.streams.filter(res=resolution).first()
-        stream.stream_to_buffer(Buffer)
-        Buffer.seek(0)
-        downloaded_buffers.append((video.thumbnail_url, Buffer))
-        return downloaded_buffers
+        if not stream:
+            continue
+        downloaded_streams.append((video.thumbnail_url, Buffer))
+        return downloaded_streams
 
 
-def download_video(url, resolution) -> Stream:
+def download_video(url, resolution) -> Tuple[Stream, Tuple[str, str, str]]:
     """
     Downloads a video stream from the given URL with the specified resolution.
 
@@ -36,11 +39,12 @@ def download_video(url, resolution) -> Stream:
         Stream: The downloaded video stream.
     """
     yt = YouTube(url)
+    data = get_video_data(yt)
     stream = yt.streams.filter(res=resolution).first()
     if not stream:
-        return
+        return HTTPException(status_code=404, detail="Video not found")
     else:
-        return stream
+        return stream, data
 
 
 def download(
@@ -72,10 +76,27 @@ def download(
             yield chunk
     except HTTPError as e:
         if e.code != 404:
-            raise
+            raise e
         for chunk in request.seq_stream(
             stream.url, timeout=timeout, max_retries=max_retries
         ):
             bytes_remaining -= len(chunk)
             print("there")
             yield chunk
+
+
+def get_video_data(yt: YouTube) -> Tuple[str, str, str]:
+    """
+    A function to retrieve the title, picture, and author of a YouTube video.
+
+    Args:
+        yt (YouTube): An instance of the YouTube class containing video information.
+
+    Returns:
+        Tuple[str, str, str]: A tuple containing the title, picture URL, and author of the video.
+    """
+    title = yt.title
+    picture = yt.thumbnail_url
+    author = yt._author
+
+    return title, picture, author
