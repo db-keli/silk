@@ -3,7 +3,7 @@ import { useState } from "react";
 export default function Search() {
   const [state, setState] = useState(false);
   return (
-    <div className="flex flex-row mt-5">
+    <div className="flex flex-row mt-9">
       <div className="basis-1/12" />
       <input
         name="Search"
