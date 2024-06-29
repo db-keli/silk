@@ -4,14 +4,14 @@ export default function NavBar() {
       <nav className=" flex flex-row justify-center">
         <svg
           href="./logo.jpg"
-          className="basis-1/5 rounded-full"
+          className="basis-1/5 flex flex-row justify-center"
           width="200"
           height="200"
           xmlns="http://www.w3.org/2000/svg"
         >
           <image
-            height="100%"
-            width="100%"
+            height="200"
+            width="200"
             href="https://comicvine.gamespot.com/a/uploads/scale_small/11/111746/5120797-aristidefiloselle_c1033a1.jpg"
           />
         </svg>
