@@ -13,7 +13,7 @@ Buffer = io.BytesIO()
 from typing import List
 
 
-def download_playlist(url, resolution) -> List[Tuple[str, io.BytesIO]]:
+def download_playlist(url, resolution):
     playlist = Playlist(url)
     downloaded_streams = []
 
@@ -21,9 +21,10 @@ def download_playlist(url, resolution) -> List[Tuple[str, io.BytesIO]]:
         raise HTTPException(status_code=404, detail="Playlist not found")
     for video in playlist.videos:
         stream = video.streams.filter(res=resolution).first()
+        data = get_video_data(video)
         if not stream:
             continue
-        downloaded_streams.append((video.thumbnail_url, Buffer))
+        downloaded_streams.append((stream, data))
         return downloaded_streams
 
 
