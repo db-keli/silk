@@ -5,17 +5,22 @@ import Preview from "./Preview";
 export default function Search() {
   const [state, setState] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [download, setDownload] = useState(false);
+  const [hoverDownload, setHoverDownload] = useState(false);
   const [data, setData] = useState<{ thumbnailLink: string; title: string }[]>(
     []
   );
+  const [selectedResolution, setSelectedResolution] = useState("360p");
 
+  const handleResolutionChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    setSelectedResolution(event.target.value);
+    console.log(selectedResolution);
+  };
   const getData = async (event: ChangeEvent) => {
     setLoading(true);
     const link = (event.target as HTMLInputElement).value;
     try {
       const response = await axios.get(
-        `http://127.0.0.1:8000/download-video/?url=${link}&resolution=480p`
+        `http://127.0.0.1:8000/download-video/?url=${link}&resolution=${selectedResolution}`
       );
       const data = response.data.data;
       setData(data);
@@ -32,7 +37,7 @@ export default function Search() {
     const link = document.querySelector("input")?.value;
     try {
       const response = await axios.get(
-        `http://127.0.0.1:8000/download-video/?url=${link}&resolution=480p`
+        `http://127.0.0.1:8000/download-video/?url=${link}&resolution=${selectedResolution}`
       );
       const data = response.data.data;
       setData(data);
@@ -41,6 +46,23 @@ export default function Search() {
       console.error(error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const [download, setDownload] = useState(false);
+  const downloadOnMouseClick = async () => {
+    setDownload(true);
+    const link = document.querySelector("input")?.value;
+    try {
+      const response = await axios.post(
+        "/http://127.0.0.1:8000/download-video",
+        { url: link, resolution: selectedResolution }
+      );
+      return response;
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setDownload(false);
     }
   };
 
@@ -92,16 +114,32 @@ export default function Search() {
         <div className="basis-1/12" />
         <button
           className={
-            download === true
-              ? "basis-9/12 bg-cyan-600 rounded-md font-open text-white font-bold text-center w-full"
-              : "basis-9/12 rounded-md font-open text-white font-bold text-center w-full"
+            hoverDownload === true
+              ? "basis-7/12 bg-cyan-600 rounded-md font-open text-white font-bold text-center w-full"
+              : "basis-7/12 bg-cyan-600 rounded-md font-open text-white text-center w-full"
           }
-          onMouseEnter={() => setDownload(true)}
-          onMouseLeave={() => setDownload(false)}
+          onMouseEnter={() => setHoverDownload(true)}
+          onMouseLeave={() => setHoverDownload(false)}
+          onClick={() => downloadOnMouseClick}
         >
           download
         </button>
-        <div className="basis-2/12" />
+        <div className="basis-3/12">
+          <select
+            id="resolutions"
+            value={selectedResolution}
+            onChange={handleResolutionChange}
+            className="ml-3 col-span-3 block w-full"
+          >
+            <option value="">Select a resolution</option>
+            <option value="1080p">1080p</option>
+            <option value="720p">720p</option>
+            <option value="480p">480p</option>
+            <option value="360p">360p</option>
+            <option value="240p">240p</option>
+            <option value="144p">144p</option>
+          </select>
+        </div>
       </div>
     </>
   );

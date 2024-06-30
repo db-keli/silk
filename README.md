@@ -2,7 +2,7 @@
 
 ![Aristides Silk](https://comicvine.gamespot.com/a/uploads/scale_small/11/111746/5120797-aristidefiloselle_c1033a1.jpg)
 
-Silk is a simple and efficient YouTube video downloader with a sleek frontend and powerful backend. With Silk, you can paste the link to your video, choose the desired resolution, and download it with ease.
+Silk is an efficient YouTube video downloader with a sleek frontend and powerful backend. With Silk, you can paste the link to your video, choose the desired resolution, and download it with ease.
 
 ## Features
 
