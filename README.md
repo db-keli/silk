@@ -19,7 +19,7 @@ Silk is a simple and efficient YouTube video downloader with a sleek frontend an
 
    ```bash
    git clone https://github.com/db-keli/silk.git
-   cd silk/backend
+   cd silk/api
    ```
 
 2. Create a virtual environment and activate it:
@@ -56,12 +56,12 @@ Silk is a simple and efficient YouTube video downloader with a sleek frontend an
 
 3. Start the React development server:
    ```bash
-   npm start
+   npm run dev
    ```
 
 ## Usage
 
-1. Open your browser and navigate to `http://localhost:3000`.
+1. Open your browser and navigate to specified ip address for the frontend.
 2. Paste the link to the YouTube video you want to download.
 3. Select your desired resolution.
 4. Click the download button and enjoy your video.
@@ -76,6 +76,4 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ---
 
-Feel free to customize this README as needed for your project!### silk
-
-fullstack youtube video downloader api
+improving it ...
