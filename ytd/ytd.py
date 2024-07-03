@@ -73,7 +73,6 @@ def download(
         ):
             print(bytes_remaining)
             bytes_remaining -= len(chunk)
-            print("here")
             yield chunk
     except HTTPError as e:
         if e.code != 404:
@@ -82,7 +81,6 @@ def download(
             stream.url, timeout=timeout, max_retries=max_retries
         ):
             bytes_remaining -= len(chunk)
-            print("there")
             yield chunk
 
 

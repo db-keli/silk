@@ -7,8 +7,9 @@ import sys
 import mimetypes
 from pytube import YouTube
 import io
+from dotenv import load_dotenv
 
-
+load_dotenv()
 repository_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 sys.path.insert(0, repository_path)
@@ -16,10 +17,12 @@ sys.path.insert(0, repository_path)
 from ytd import ytd
 
 app = FastAPI()
+frontend_host = os.getenv("FRONTEND_HOST")
+
 
 origins = [
     "http://localhost",
-    "http://localhost:5173",
+    frontend_host,
 ]
 
 app.add_middleware(
