@@ -66,6 +66,8 @@ Silk is an efficient YouTube video downloader with a sleek frontend and powerful
 3. Select your desired resolution.
 4. Click the download button and enjoy your video.
 
+![Aristides Silk](./screenshot.png)
+
 ## Contributing
 
 Contributions are welcome! Please fork the repository and submit a pull request.
