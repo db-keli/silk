@@ -5,8 +5,6 @@ from schemas import Playlist, Video
 import os
 import sys
 import mimetypes
-from pytube import YouTube
-import io
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -69,6 +67,25 @@ async def single_video_download(video: Video):
 
 @app.get("/download-video/")
 async def get_video_data(url: str, resolution: str):
+    """
+    Retrieves video data from the specified URL and resolution.
+
+    Args:
+        url (str): The URL of the video.
+        resolution (str): The desired resolution of the video.
+
+    Returns:
+        dict: A dictionary containing the video data.
+
+    Raises:
+        None.
+
+    Example Usage:
+        url = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+        resolution = "720p"
+        video_data = await get_video_data(url, resolution)
+        print(video_data)
+    """
     youtubeVideo = ytd.download_video(url, resolution)
     data = youtubeVideo[1]
     return {"data": data}
