@@ -1,7 +1,9 @@
 import { useState, ChangeEvent } from "react";
 import axios from "axios";
 import Preview from "./Preview";
+require("dotenv").config();
 
+const host = process.env.BACKEND_PORT;
 export default function Search() {
   const [state, setState] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -20,7 +22,7 @@ export default function Search() {
     const link = (event.target as HTMLInputElement).value;
     try {
       const response = await axios.get(
-        `http://127.0.0.1:8000/download-video/?url=${link}&resolution=${selectedResolution}`
+        `${host}?url=${link}&resolution=${selectedResolution}`
       );
       const data = response.data.data;
       setData(data);
@@ -37,7 +39,7 @@ export default function Search() {
     const link = document.querySelector("input")?.value;
     try {
       const response = await axios.get(
-        `http://127.0.0.1:8000/download-video/?url=${link}&resolution=${selectedResolution}`
+        `${host}?url=${link}&resolution=${selectedResolution}`
       );
       const data = response.data.data;
       setData(data);
@@ -54,18 +56,64 @@ export default function Search() {
     setDownload(true);
     const link = document.querySelector("input")?.value;
     try {
-      const response = await axios.post(
-        "/http://127.0.0.1:8000/download-video",
-        { url: link, resolution: selectedResolution }
-      );
-      return response;
+      const response = await fetch(`${host}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          url: String(link),
+          resolution: String(selectedResolution),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+
+      const body = response.body;
+      if (!body) {
+        throw new Error(
+          "ReadableStream is not supported or response body is null"
+        );
+      }
+
+      const reader = body.getReader();
+      const contentLength = response.headers.get("Content-Length");
+      const totalLength = contentLength ? parseInt(contentLength, 10) : 0;
+
+      let receivedLength = 0;
+      const chunks: Uint8Array[] = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) {
+          break;
+        }
+
+        if (value) {
+          chunks.push(value);
+          receivedLength += value.length;
+
+          console.log(`Received ${receivedLength} of ${totalLength}`);
+        }
+      }
+
+      const blob = new Blob(chunks);
+      const url = window.URL.createObjectURL(blob);
+      const bloblink = document.createElement("a");
+      bloblink.href = url;
+      bloblink.setAttribute("download", "video.mp4"); // or use a dynamic name
+      document.body.appendChild(bloblink);
+      bloblink.click();
+      document.body.removeChild(bloblink);
     } catch (error) {
       console.log(error);
     } finally {
       setDownload(false);
     }
   };
-
   return (
     <>
       <div className="flex flex-row mt-20">
@@ -120,7 +168,7 @@ export default function Search() {
           }
           onMouseEnter={() => setHoverDownload(true)}
           onMouseLeave={() => setHoverDownload(false)}
-          onClick={() => downloadOnMouseClick}
+          onClick={() => downloadOnMouseClick()}
         >
           download
         </button>

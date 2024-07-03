@@ -24,3 +24,4 @@ dist-ssr
 *.sw?
 ./src/output.css
 output.css
+*.env
