@@ -11,9 +11,7 @@ export default function NavBar() {
         >
           <image height="200" width="200" href="/logo.jpg" />
         </svg>
-        <p className="text-white basis-3/5 text-center mt-11 text-5xl">
-          Aristides Silk
-        </p>
+        <p className="text-white basis-3/5 text-center mt-11 text-5xl">Silk</p>
         <div className="text-white basis-1/5 text-center">
           <ul>
             <li className="text-left">Playlists</li>
