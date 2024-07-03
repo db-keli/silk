@@ -3,8 +3,8 @@ import axios from "axios";
 import Preview from "./Preview";
 require("dotenv").config();
 
-const host = process.env.BACKEND_PORT;
 export default function Search() {
+  const BACKEND_URL = process.env.BACKEND_URL;
   const [state, setState] = useState(false);
   const [loading, setLoading] = useState(false);
   const [hoverDownload, setHoverDownload] = useState(false);
@@ -22,7 +22,7 @@ export default function Search() {
     const link = (event.target as HTMLInputElement).value;
     try {
       const response = await axios.get(
-        `${host}?url=${link}&resolution=${selectedResolution}`
+        `${BACKEND_URL}?url=${link}&resolution=${selectedResolution}`
       );
       const data = response.data.data;
       setData(data);
@@ -39,7 +39,7 @@ export default function Search() {
     const link = document.querySelector("input")?.value;
     try {
       const response = await axios.get(
-        `${host}?url=${link}&resolution=${selectedResolution}`
+        `${BACKEND_URL}?url=${link}&resolution=${selectedResolution}`
       );
       const data = response.data.data;
       setData(data);
@@ -56,7 +56,7 @@ export default function Search() {
     setDownload(true);
     const link = document.querySelector("input")?.value;
     try {
-      const response = await fetch(`${host}`, {
+      const response = await fetch(`${BACKEND_URL}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
