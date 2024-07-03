@@ -73,6 +73,18 @@ Contributions are welcome! Please fork the repository and submit a pull request.
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+Sure, here is a disclaimer you can use for your YouTube video downloader:
+
+---
+
+### Disclaimer
+
+This YouTube video downloader is developed solely for educational purposes. It is designed to help users understand how to interact with APIs, manage data, and build frontend and backend applications.
+
+**Copyright Infringement Not Supported:**
+This tool is not intended to support or encourage any form of copyright infringement. Users are responsible for ensuring they have the necessary rights and permissions to download and use any content. Downloading copyrighted material without permission is illegal and against YouTube's Terms of Service.
+
+By using this tool, you agree to use it in compliance with all applicable laws and YouTube’s terms of service.
 
 ---
 
