@@ -3,7 +3,7 @@ import axios from "axios";
 import Preview from "./Preview";
 
 export default function Search() {
-  const BACKEND_URL = process.env.BACKEND_URL;
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
   const [state, setState] = useState(false);
   const [loading, setLoading] = useState(false);
   const [hoverDownload, setHoverDownload] = useState(false);

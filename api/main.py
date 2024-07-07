@@ -65,7 +65,7 @@ async def single_video_download(video: Video):
     )
 
 
-@app.get("/download-video/")
+@app.get("/download-video")
 async def get_video_data(url: str, resolution: str):
     """
     Retrieves video data from the specified URL and resolution.
