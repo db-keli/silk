@@ -1,7 +1,6 @@
 import { useState, ChangeEvent } from "react";
 import axios from "axios";
 import Preview from "./Preview";
-require("dotenv").config();
 
 export default function Search() {
   const BACKEND_URL = process.env.BACKEND_URL;
