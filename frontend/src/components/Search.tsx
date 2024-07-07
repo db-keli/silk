@@ -1,10 +1,9 @@
 import { useState, ChangeEvent } from "react";
 import axios from "axios";
 import Preview from "./Preview";
-require("dotenv").config();
 
 export default function Search() {
-  const BACKEND_URL = process.env.BACKEND_URL;
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
   const [state, setState] = useState(false);
   const [loading, setLoading] = useState(false);
   const [hoverDownload, setHoverDownload] = useState(false);
