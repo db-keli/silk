@@ -1,12 +1,14 @@
 import { useState, ChangeEvent } from "react";
 import axios from "axios";
 import Preview from "./Preview";
+import ProgressBar from "./ProgressBar";
 
 export default function Search() {
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
   const [state, setState] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [hoverDownload, setHoverDownload] = useState(false);
+  const [completed,setCompleted] = useState(0);
   const [data, setData] = useState<{ thumbnailLink: string; title: string }[]>(
     []
   );
@@ -16,25 +18,9 @@ export default function Search() {
     setSelectedResolution(event.target.value);
     console.log(selectedResolution);
   };
-  const getData = async (event: ChangeEvent) => {
-    setLoading(true);
-    const link = (event.target as HTMLInputElement).value;
-    try {
-      const response = await axios.get(
-        `${BACKEND_URL}?url=${link}&resolution=${selectedResolution}`
-      );
-      const data = response.data.data;
-      setData(data);
-      console.log(String(data));
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getDataOnMouseClick = async () => {
-    setLoading(true);
+    setPreviewLoading(true);
     const link = document.querySelector("input")?.value;
     try {
       const response = await axios.get(
@@ -46,16 +32,30 @@ export default function Search() {
     } catch (error) {
       console.error(error);
     } finally {
-      setLoading(false);
+      setPreviewLoading(false);
     }
   };
 
   const [download, setDownload] = useState(false);
+
+  const downloadFile = (chunks) => {
+      const blob = new Blob(chunks);
+      const url = window.URL.createObjectURL(blob);
+      const bloblink = document.createElement("a");
+      bloblink.href = url;
+      bloblink.setAttribute("download", "video.mp4"); // or use a dynamic name
+      document.body.appendChild(bloblink);
+      bloblink.click();
+      document.body.removeChild(bloblink);
+  }
   const downloadOnMouseClick = async () => {
     setDownload(true);
     const link = document.querySelector("input")?.value;
+    const url = new URL(link)
+    const path = url.pathname
     try {
-      const response = await fetch(`${BACKEND_URL}`, {
+      const backendPath = path === "/watch" ? "download-video" : "download-playlist"
+      const response = await fetch(`${BACKEND_URL}/${backendPath}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -82,7 +82,7 @@ export default function Search() {
       const totalLength = contentLength ? parseInt(contentLength, 10) : 0;
 
       let receivedLength = 0;
-      const chunks: Uint8Array[] = [];
+      let chunks: Uint8Array[] = [];
 
       while (true) {
         const { done, value } = await reader.read();
@@ -90,27 +90,28 @@ export default function Search() {
         if (done) {
           break;
         }
-
         if (value) {
+          const eof = new Uint8Array([10, 10, 10, 10, 10, 10, 10])
+          if (value.length === eof.length) {
+             downloadFile(chunks)
+             chunks = []
+             continue
+          }
           chunks.push(value);
           receivedLength += value.length;
-
+          console.log(receivedLength/totalLength)
           console.log(`Received ${receivedLength} of ${totalLength}`);
+          setCompleted(((receivedLength/totalLength) * 100).toFixed(2))
         }
       }
+     downloadFile(chunks) // to download last file
 
-      const blob = new Blob(chunks);
-      const url = window.URL.createObjectURL(blob);
-      const bloblink = document.createElement("a");
-      bloblink.href = url;
-      bloblink.setAttribute("download", "video.mp4"); // or use a dynamic name
-      document.body.appendChild(bloblink);
-      bloblink.click();
-      document.body.removeChild(bloblink);
     } catch (error) {
       console.log(error);
     } finally {
       setDownload(false);
+      setCompleted(0);
+      setData([])
     }
   };
   return (
@@ -123,7 +124,6 @@ export default function Search() {
           maxLength={90}
           className="basis-9/12 border-white"
           placeholder="  Paste Link Here"
-          onChange={(event) => getData(event)}
         />
         <div
           onMouseEnter={() => setState(true)}
@@ -147,14 +147,23 @@ export default function Search() {
         </div>
         <div className="basis-1/12" />
       </div>
-      {loading && (
+      {previewLoading && (
         <div className=" justify-center text-center mt-2 font-open text-white loader">
-          Loading......
+          <div className=" justify-center text-center mt-2 font-open text-white loader">
+            Loading......
+          </div>
         </div>
       )}
       <div>
-        {loading === false && data.length > 0 && (
+        {previewLoading === false && data.length > 0 && (
           <Preview thumbnailLink={String(data[1])} title={String(data[0])} />
+        )}
+      </div>
+      <div>
+        {download && (
+          <div className=" justify-center text-center mt-2 font-open text-white loader">
+            <ProgressBar completed={completed} />
+          </div>
         )}
       </div>
       <div className="flex flex-row mt-20">

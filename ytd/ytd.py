@@ -5,13 +5,18 @@ import io
 from typing import List, Optional, Tuple
 from pytube import request
 from fastapi import HTTPException
+import concurrent.futures
 
 
 Buffer = io.BytesIO()
 
+request.default_range_size = 85000
 
 from typing import List
 
+def get_stream(video,resolution):
+    stream = video.streams.filter(res=resolution).first()
+    return stream, video
 
 def download_playlist(url, resolution):
     playlist = Playlist(url)
@@ -19,13 +24,15 @@ def download_playlist(url, resolution):
 
     if not playlist:
         raise HTTPException(status_code=404, detail="Playlist not found")
-    for video in playlist.videos:
-        stream = video.streams.filter(res=resolution).first()
-        data = get_video_data(video)
-        if not stream:
-            continue
-        downloaded_streams.append((stream, data))
-        return downloaded_streams
+    with concurrent.futures.ThreadPoolExecutor() as executer:
+        results = [executer.submit(get_stream,video,resolution) for video in playlist.videos]
+        for f in concurrent.futures.as_completed(results):
+            stream,video = f.result()
+            data = get_video_data(video)
+            if not stream:
+                continue
+            downloaded_streams.append((stream, data))
+    return downloaded_streams
 
 
 def download_video(url, resolution) -> Tuple[Stream, Tuple[str, str, str]]:
@@ -66,21 +73,17 @@ def download(
         HTTPError: If an HTTP error occurs and the error code is not 404.
 
     """
-    bytes_remaining = stream.filesize
     try:
         for chunk in request.stream(
             stream.url, timeout=timeout, max_retries=max_retries
         ):
-            print(bytes_remaining)
-            bytes_remaining -= len(chunk)
             yield chunk
     except HTTPError as e:
         if e.code != 404:
             raise e
-        for chunk in request.seq_stream(
-            stream.url, timeout=timeout, max_retries=max_retries
+        for chunk in request.stream(
+                stream.url, timeout=timeout, max_retries=max_retries
         ):
-            bytes_remaining -= len(chunk)
             yield chunk
 
 
