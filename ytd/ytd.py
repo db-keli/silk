@@ -2,10 +2,11 @@ from urllib.error import HTTPError
 from pytube import Playlist
 from pytube import YouTube, Stream
 import io
-from typing import List, Optional, Tuple
+from typing import Optional, Tuple
 from pytube import request
 from fastapi import HTTPException
-import concurrent.futures
+import asyncio
+from api.main import connection_manager
 
 
 Buffer = io.BytesIO()
@@ -14,24 +15,30 @@ request.default_range_size = 85000
 
 from typing import List
 
-def get_stream(video,resolution):
-    stream = video.streams.filter(res=resolution).first()
-    return stream, video
-
-def download_playlist(url, resolution):
+def download_playlist(url, resolution, username, loop: asyncio.AbstractEventLoop):
     playlist = Playlist(url)
     downloaded_streams = []
-
+    asyncio.run_coroutine_threadsafe(connection_manager.broadcast(
+        data={"type": "start-download", "video-count": len(playlist.videos),
+              "message": f"Downloading playlist: {playlist.title}"},
+        username=username),
+        loop=loop)
     if not playlist:
         raise HTTPException(status_code=404, detail="Playlist not found")
-    with concurrent.futures.ThreadPoolExecutor() as executer:
-        results = [executer.submit(get_stream,video,resolution) for video in playlist.videos]
-        for f in concurrent.futures.as_completed(results):
-            stream,video = f.result()
-            data = get_video_data(video)
-            if not stream:
-                continue
-            downloaded_streams.append((stream, data))
+    for video in playlist.videos:
+        stream = video.streams.filter(res=resolution).first()
+        data = get_video_data(video)
+        asyncio.run_coroutine_threadsafe(connection_manager.broadcast(
+            data={"type": "progress-check","message":f"{data[0]} has been downloaded"},
+            username=username),
+            loop=loop)
+        if not stream:
+            continue
+        downloaded_streams.append((stream, data))
+    asyncio.run_coroutine_threadsafe(connection_manager.broadcast(
+        data={"type": "end-download","message":f"Playlist: {playlist.title} has been downloaded"},
+        username=username),
+        loop=loop)
     return downloaded_streams
 
 

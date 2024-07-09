@@ -1,6 +1,8 @@
-from fastapi import FastAPI, HTTPException, Query
+import asyncio
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
+from ConnectionManager import connection_manager
 from schemas import Playlist, Video
 import os
 import sys
@@ -31,6 +33,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+loop = asyncio.get_running_loop()
+
+@app.websocket("/{username}")
+async def websocket_endpoint(username:str,websocket: WebSocket):
+    await connection_manager.connect(websocket,username)
+    try:
+        while True:
+            data = await websocket.receive_json()
+            await connection_manager.broadcast(data=data,username=username)
+    except WebSocketDisconnect:
+        connection_manager.disconnect(websocket,username)
 
 @app.post("/download-video")
 def single_video_download(video: Video):
@@ -119,8 +132,8 @@ def stream_video(playlist: Playlist):
     """
     url = playlist.url
     video_resolution = playlist.resolution
-
-    youtube_videos = ytd.download_playlist(url, video_resolution)
+    username = playlist.username
+    youtube_videos = ytd.download_playlist(url, video_resolution, username, loop)
     content_length = 0
     for video, data in youtube_videos:
         content_length += video.filesize + len(b"\n\n\n\n\n\n\n")
