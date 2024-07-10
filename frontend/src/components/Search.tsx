@@ -1,44 +1,64 @@
-import { useState, ChangeEvent } from "react";
+import { useState, useEffect, ChangeEvent } from "react";
 import axios from "axios";
 import Preview from "./Preview";
+import ProgressBar from "./ProgressBar";
 
 export default function Search() {
   const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
   const [state, setState] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [hoverDownload, setHoverDownload] = useState(false);
+  const [completed,setCompleted] = useState(0);
+  const [downloadStatus,setDownloadStatus] = useState("")
+  const [download,setDownload] = useState(false)
+  const [downloadTotalLength,setDownloadTotalLength] = useState(0)
+  const [downloadReceivedLength,setDownloadReceivedLength] = useState(0)
+  const [stream, setStream] = useState(false);
+  const [streamTotalLength,setStreamTotalLength] = useState(0)
+  const [streamReceivedLength,setStreamReceivedLength] = useState(0)
+  const [username,setUsername] = useState(Math.floor(Date.now() / 1000).toString())
   const [data, setData] = useState<{ thumbnailLink: string; title: string }[]>(
     []
   );
+
+  useEffect(() => {
+    const websocket = new WebSocket(`ws://${BACKEND_URL}/${username}`)
+    websocket.onmessage = (event) => {
+        const message = JSON.parse(event.data)
+        if (message.type === "start-download"){
+            setDownloadTotalLength(message.video_count)
+            setDownload(true)
+            setDownloadStatus(message.message)
+        }
+        else if (message.type === "end-download"){
+            setDownloadStatus(message.message)
+            setDownload(false)
+            setDownloadTotalLength(0)
+            setStream(true)
+        }
+        else if (message.type === "progress-check"){
+            console.log("check")
+            setDownloadReceivedLength(downloadReceivedLength => downloadReceivedLength + 1)
+            setDownloadStatus(message.message)
+        }
+    }
+    return () => {
+        websocket.close()
+    }
+  },[])
   const [selectedResolution, setSelectedResolution] = useState("360p");
 
   const handleResolutionChange = (event: ChangeEvent<HTMLSelectElement>) => {
     setSelectedResolution(event.target.value);
     console.log(selectedResolution);
   };
-  const getData = async (event: ChangeEvent) => {
-    setLoading(true);
-    const link = (event.target as HTMLInputElement).value;
-    try {
-      const response = await axios.get(
-        `${BACKEND_URL}?url=${link}&resolution=${selectedResolution}`
-      );
-      const data = response.data.data;
-      setData(data);
-      console.log(String(data));
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getDataOnMouseClick = async () => {
-    setLoading(true);
+    setPreviewLoading(true);
     const link = document.querySelector("input")?.value;
     try {
       const response = await axios.get(
-        `${BACKEND_URL}?url=${link}&resolution=${selectedResolution}`
+        `http://${BACKEND_URL}/download-video?url=${link}&resolution=${selectedResolution}`
       );
       const data = response.data.data;
       setData(data);
@@ -46,16 +66,27 @@ export default function Search() {
     } catch (error) {
       console.error(error);
     } finally {
-      setLoading(false);
+      setPreviewLoading(false);
     }
   };
 
-  const [download, setDownload] = useState(false);
+  const downloadFile = (chunks) => {
+      const blob = new Blob(chunks);
+      const url = window.URL.createObjectURL(blob);
+      const bloblink = document.createElement("a");
+      bloblink.href = url;
+      bloblink.setAttribute("download", "video.mp4"); // or use a dynamic name
+      document.body.appendChild(bloblink);
+      bloblink.click();
+      document.body.removeChild(bloblink);
+  }
   const downloadOnMouseClick = async () => {
-    setDownload(true);
     const link = document.querySelector("input")?.value;
+    const url = new URL(link)
+    const path = url.pathname
     try {
-      const response = await fetch(`${BACKEND_URL}`, {
+      const backendPath = path === "/watch" ? "download-video" : "download-playlist"
+      const response = await fetch(`http://${BACKEND_URL}/${backendPath}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -63,6 +94,7 @@ export default function Search() {
         body: JSON.stringify({
           url: String(link),
           resolution: String(selectedResolution),
+          username: username
         }),
       });
 
@@ -80,9 +112,9 @@ export default function Search() {
       const reader = body.getReader();
       const contentLength = response.headers.get("Content-Length");
       const totalLength = contentLength ? parseInt(contentLength, 10) : 0;
+      setStreamTotalLength(totalLength)
 
-      let receivedLength = 0;
-      const chunks: Uint8Array[] = [];
+      let chunks: Uint8Array[] = [];
 
       while (true) {
         const { done, value } = await reader.read();
@@ -90,29 +122,38 @@ export default function Search() {
         if (done) {
           break;
         }
-
         if (value) {
+          const eof = new Uint8Array([10, 10, 10, 10, 10, 10, 10])
+          if (value.length === eof.length) {
+             downloadFile(chunks)
+             chunks = []
+             continue
+          }
           chunks.push(value);
-          receivedLength += value.length;
-
-          console.log(`Received ${receivedLength} of ${totalLength}`);
+          setStreamReceivedLength(streamReceivedLength => streamReceivedLength + value.length)
         }
       }
 
-      const blob = new Blob(chunks);
-      const url = window.URL.createObjectURL(blob);
-      const bloblink = document.createElement("a");
-      bloblink.href = url;
-      bloblink.setAttribute("download", "video.mp4"); // or use a dynamic name
-      document.body.appendChild(bloblink);
-      bloblink.click();
-      document.body.removeChild(bloblink);
     } catch (error) {
       console.log(error);
     } finally {
-      setDownload(false);
+      setStream(false);
+      setData([])
     }
   };
+
+  useEffect(() => {
+    console.log(streamReceivedLength/streamTotalLength)
+    console.log(`Received ${streamReceivedLength} of ${streamTotalLength}`);
+  },[streamReceivedLength])
+
+  const complete = (received,total) => {
+    const completePercentage = ((received/total)*100).toFixed(2)
+    if (isNaN(completePercentage)){
+        return 0
+    }
+    return completePercentage
+  }
   return (
     <>
       <div className="flex flex-row mt-20">
@@ -123,7 +164,6 @@ export default function Search() {
           maxLength={90}
           className="basis-9/12 border-white"
           placeholder="  Paste Link Here"
-          onChange={(event) => getData(event)}
         />
         <div
           onMouseEnter={() => setState(true)}
@@ -147,14 +187,33 @@ export default function Search() {
         </div>
         <div className="basis-1/12" />
       </div>
-      {loading && (
+      {previewLoading && (
         <div className=" justify-center text-center mt-2 font-open text-white loader">
-          Loading......
+          <div className=" justify-center text-center mt-2 font-open text-white loader">
+            Loading......
+          </div>
         </div>
       )}
       <div>
-        {loading === false && data.length > 0 && (
+        {previewLoading === false && data.length > 0 && (
           <Preview thumbnailLink={String(data[1])} title={String(data[0])} />
+        )}
+      </div>
+      <div>
+        {download && (
+          <div className=" justify-center text-center mt-2 font-open text-white loader">
+            <ProgressBar completed={complete(downloadReceivedLength,downloadTotalLength)} />
+            <div className=" justify-center text-center mt-2 font-open text-white loader">
+                {downloadStatus}
+            </div>
+          </div>
+        )}
+      </div>
+      <div>
+        {stream && (
+          <div className=" justify-center text-center mt-2 font-open text-white loader">
+            <ProgressBar completed={complete(streamReceivedLength,streamTotalLength)} />
+          </div>
         )}
       </div>
       <div className="flex flex-row mt-20">

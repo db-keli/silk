@@ -2,30 +2,44 @@ from urllib.error import HTTPError
 from pytube import Playlist
 from pytube import YouTube, Stream
 import io
-from typing import List, Optional, Tuple
+from typing import Optional, Tuple
 from pytube import request
 from fastapi import HTTPException
+import asyncio
+from api.main import connection_manager
 
 
 Buffer = io.BytesIO()
 
+request.default_range_size = 85000
 
 from typing import List
 
-
-def download_playlist(url, resolution):
+def download_playlist(url, resolution, username, loop: asyncio.AbstractEventLoop):
     playlist = Playlist(url)
     downloaded_streams = []
-
+    asyncio.run_coroutine_threadsafe(connection_manager.broadcast(
+        data={"type": "start-download", "video-count": len(playlist.videos),
+              "message": f"Downloading playlist: {playlist.title}"},
+        username=username),
+        loop=loop)
     if not playlist:
         raise HTTPException(status_code=404, detail="Playlist not found")
     for video in playlist.videos:
         stream = video.streams.filter(res=resolution).first()
         data = get_video_data(video)
+        asyncio.run_coroutine_threadsafe(connection_manager.broadcast(
+            data={"type": "progress-check","message":f"{data[0]} has been downloaded"},
+            username=username),
+            loop=loop)
         if not stream:
             continue
         downloaded_streams.append((stream, data))
-        return downloaded_streams
+    asyncio.run_coroutine_threadsafe(connection_manager.broadcast(
+        data={"type": "end-download","message":f"Playlist: {playlist.title} has been downloaded"},
+        username=username),
+        loop=loop)
+    return downloaded_streams
 
 
 def download_video(url, resolution) -> Tuple[Stream, Tuple[str, str, str]]:
@@ -66,21 +80,17 @@ def download(
         HTTPError: If an HTTP error occurs and the error code is not 404.
 
     """
-    bytes_remaining = stream.filesize
     try:
         for chunk in request.stream(
             stream.url, timeout=timeout, max_retries=max_retries
         ):
-            print(bytes_remaining)
-            bytes_remaining -= len(chunk)
             yield chunk
     except HTTPError as e:
         if e.code != 404:
             raise e
-        for chunk in request.seq_stream(
-            stream.url, timeout=timeout, max_retries=max_retries
+        for chunk in request.stream(
+                stream.url, timeout=timeout, max_retries=max_retries
         ):
-            bytes_remaining -= len(chunk)
             yield chunk
 
 

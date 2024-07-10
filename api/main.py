@@ -1,6 +1,8 @@
-from fastapi import FastAPI, HTTPException, Query
+import asyncio
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
+from ConnectionManager import connection_manager
 from schemas import Playlist, Video
 import os
 import sys
@@ -31,9 +33,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+loop = asyncio.get_running_loop()
+
+@app.websocket("/{username}")
+async def websocket_endpoint(username:str,websocket: WebSocket):
+    await connection_manager.connect(websocket,username)
+    try:
+        while True:
+            data = await websocket.receive_json()
+            await connection_manager.broadcast(data=data,username=username)
+    except WebSocketDisconnect:
+        connection_manager.disconnect(websocket,username)
 
 @app.post("/download-video")
-async def single_video_download(video: Video):
+def single_video_download(video: Video):
     """
     Downloads a video from the given URL with the specified resolution and returns a streaming response.
 
@@ -57,16 +70,16 @@ async def single_video_download(video: Video):
     title = youtubeVideo[1][0]
     video_stream = youtubeVideo[0]
     media_type, _ = mimetypes.guess_type(title)
-
     return StreamingResponse(
         ytd.download(video_stream, timeout=1000, max_retries=6),
         media_type=media_type or "application/octet-stream",
-        headers={"Content-Disposition": f'attachment; filename="{title}.mp4"'},
+        headers={"Content-Disposition": f'attachment; filename="{title}.mp4"',
+                 "Content-Length":str(video_stream.filesize)},
     )
 
 
 @app.get("/download-video")
-async def get_video_data(url: str, resolution: str):
+def get_video_data(url: str, resolution: str):
     """
     Retrieves video data from the specified URL and resolution.
 
@@ -91,8 +104,15 @@ async def get_video_data(url: str, resolution: str):
     return {"data": data}
 
 
+def stream_multiple_videos(youtube_videos):
+    for video, data in youtube_videos:
+        title = video.title
+        media_type, _ = mimetypes.guess_type(title)
+        yield from ytd.download(video, timeout=1000, max_retries=6)
+        yield b"\n\n\n\n\n\n\n" # eof
+
 @app.post("/download-playlist")
-async def stream_video(playlist: Playlist):
+def stream_video(playlist: Playlist):
     """
     Downloads a playlist of videos from the given URL with the specified video resolution and returns a streaming response for each video.
 
@@ -112,15 +132,14 @@ async def stream_video(playlist: Playlist):
     """
     url = playlist.url
     video_resolution = playlist.resolution
-
-    youtube_videos = ytd.download_playlist(url, video_resolution)
-
-    for video, i in (youtube_videos, range(0, len(youtube_videos))):
-        title = video[i].title
-        media_type, _ = mimetypes.guess_type(title)
-
-        yield StreamingResponse(
-            ytd.download(video[i], timeout=1000, max_retries=6),
-            media_type=media_type or "application/octet-stream",
-            headers={"Content-Disposition": f'attachment; filename="{title}.mp4"'},
-        )
+    username = playlist.username
+    youtube_videos = ytd.download_playlist(url, video_resolution, username, loop)
+    content_length = 0
+    for video, data in youtube_videos:
+        content_length += video.filesize + len(b"\n\n\n\n\n\n\n")
+    return StreamingResponse(
+        stream_multiple_videos(youtube_videos),
+        media_type="application/octet-stream",
+        headers={"Content-Disposition": f'attachment; filenames="playlist"',
+                 "Content-Length": str(content_length)},
+    )
