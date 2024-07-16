@@ -20,7 +20,7 @@ frontend_host = os.getenv("FRONTEND_HOST")
 
 origins = [
     "http://localhost",
-    frontend_host,
+    "http://localhost:5173",
 ]
 
 app.add_middleware(
