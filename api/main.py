@@ -1,18 +1,30 @@
-from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import StreamingResponse
-from fastapi.middleware.cors import CORSMiddleware
-from schemas import Playlist, Video
+"""
+    This module contains endpoints on the FastAPI app instance for our
+    applications
+    
+    Endpoints include:
+    - download_playlist: Downloads a playlist of videos from the given URL
+    - download_video: Downloads a video stream from the given URL
+"""
+
 import os
 import sys
 import mimetypes
 from dotenv import load_dotenv
+
+
+from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
+from ytd import ytd  # pylint: disable=import-error
+from schemas import Playlist, Video  # pylint: disable=import-error
+
 
 load_dotenv()
 repository_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 sys.path.insert(0, repository_path)
 
-from ytd import ytd
 
 app = FastAPI()
 frontend_host = os.getenv("FRONTEND_HOST")
@@ -35,10 +47,12 @@ app.add_middleware(
 @app.post("/download-video")
 async def single_video_download(video: Video):
     """
-    Downloads a video from the given URL with the specified resolution and returns a streaming response.
+    Downloads a video from the given URL with the specified resolution
+    and returns a streaming response.
 
     Parameters:
-        video (Video): The video object containing the URL and resolution of the video to be downloaded.
+        video (Video): The video object containing the URL
+        and resolution of the video to be downloaded.
 
     Returns:
         StreamingResponse: The streaming response containing the downloaded video.
@@ -53,9 +67,9 @@ async def single_video_download(video: Video):
     url = video.url
     resolution = video.resolution
 
-    youtubeVideo = ytd.download_video(url, resolution)
-    title = youtubeVideo[1][0]
-    video_stream = youtubeVideo[0]
+    youtube_video = ytd.download_video(url, resolution)
+    title = youtube_video[1][0]
+    video_stream = youtube_video[0]
     media_type, _ = mimetypes.guess_type(title)
 
     return StreamingResponse(
@@ -86,27 +100,32 @@ async def get_video_data(url: str, resolution: str):
         video_data = await get_video_data(url, resolution)
         print(video_data)
     """
-    youtubeVideo = ytd.download_video(url, resolution)
-    data = youtubeVideo[1]
+    youtube_video = ytd.download_video(url, resolution)
+    data = youtube_video[1]
     return {"data": data}
 
 
 @app.post("/download-playlist")
 async def stream_video(playlist: Playlist):
     """
-    Downloads a playlist of videos from the given URL with the specified video resolution and returns a streaming response for each video.
+    Downloads a playlist of videos from the given URL with the
+    specified video resolution and returns a streaming response for each video.
 
     Parameters:
-        playlist (Playlist): The playlist object containing the URL and video resolution of the playlist to be downloaded.
+        playlist (Playlist): The playlist object containing the
+        URL and video resolution of the playlist to be downloaded.
 
     Yields:
-        StreamingResponse: A streaming response containing the downloaded video for each video in the playlist.
+        StreamingResponse: A streaming response containing the
+        downloaded video for each video in the playlist.
 
     Raises:
         None.
 
     Example Usage:
-        playlist = Playlist(url="https://www.youtube.com/playlist?list=PL3nQyYezyvZQ8N-h7Qkz46o5q5jYl0mOj", resolution="720p")
+        playlist = Playlist(
+            url="https://www.youtube.com/playlist?list=PL3nQyYezyvZQ8N-h7Qkz46o5q5jYl0mOj",
+            resolution="720p")
         for response in stream_video(playlist):
             # handle each streaming response
     """
