@@ -10,7 +10,7 @@ from pytubefix import Playlist
 from pytubefix import YouTube, Stream
 from pytubefix import request
 from fastapi import HTTPException
-from ConnectionManager import connection_manager  # pylint: disable=import-error
+from connection_manager import connection_manager  # pylint: disable=import-error
 
 Buffer = io.BytesIO()
 

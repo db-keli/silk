@@ -14,7 +14,7 @@ import mimetypes
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
-from ConnectionManager import connection_manager  # pylint: disable=import-error
+from connection_manager import connection_manager  # pylint: disable=import-error
 from schemas import Playlist, Video  # pylint: disable=import-error
 from dotenv import load_dotenv
 
