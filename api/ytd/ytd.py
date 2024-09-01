@@ -5,9 +5,9 @@
 from urllib.error import HTTPError
 import io
 from typing import Optional, Tuple
-from pytube import Playlist
-from pytube import YouTube, Stream
-from pytube import request
+from pytubefix import Playlist
+from pytubefix import YouTube, Stream
+from pytubefix import request
 from fastapi import HTTPException
 
 
